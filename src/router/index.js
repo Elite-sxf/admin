@@ -8,6 +8,12 @@ import Rights from '../components/rights.vue'
 
 Vue.use(VueRouter)
 
+// 解决多次点击同一个链接报错
+const originalPush = VueRouter.prototype.push
+VueRouter.prototype.push = function push (location) {
+  return originalPush.call(this, location).catch(err => err)
+}
+
 const routes = [
   { path: '/', redirect: '/index' },
   { path: '/login', component: Login },
