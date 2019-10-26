@@ -17,7 +17,6 @@
 </template>
 
 <script>
-import axios from 'axios'
 export default {
   data () {
     return {
@@ -42,20 +41,34 @@ export default {
     reset () {
       this.$refs.form.resetFields()
     },
-    sure () {
-      this.$refs.form.validate(isValidate => {
-        if (!isValidate) return
-        axios.post('http://localhost:8888/api/private/v1/login', this.form).then(res => {
-          const { meta, data } = res.data
-          if (meta.status === 200) {
-            localStorage.setItem('token', data.token)
-            this.$message({ message: meta.msg, type: 'success', duration: 1500 })
-            this.$router.push('/index')
-          } else {
-            this.$message({ message: meta.msg, type: 'error' })
-          }
-        })
-      })
+    async sure () {
+      try {
+        await this.$refs.form.validate()
+        const { meta, data } = await this.$axios.post('login', this.form)
+        if (meta.status === 200) {
+          localStorage.setItem('token', data.token)
+          this.$message({ message: meta.msg, type: 'success', duration: 1500 })
+          this.$router.push('/index')
+        } else {
+          this.$message({ message: meta.msg, type: 'error' })
+        }
+      } catch (e) {
+        console.log(e)
+      }
+
+      // this.$refs.form.validate(isValidate => {
+      //   if (!isValidate) return
+      //   axios.post('http://localhost:8888/api/private/v1/login', this.form).then(res => {
+      //     const { meta, data } = res.data
+      //     if (meta.status === 200) {
+      //       localStorage.setItem('token', data.token)
+      //       this.$message({ message: meta.msg, type: 'success', duration: 1500 })
+      //       this.$router.push('/index')
+      //     } else {
+      //       this.$message({ message: meta.msg, type: 'error' })
+      //     }
+      //   })
+      // })
     }
   }
 }

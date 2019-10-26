@@ -80,7 +80,7 @@ export default {
 }
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .index {
   width: 100%;
   height: 100%;
@@ -127,5 +127,8 @@ export default {
       border: none;
     }
   }
+}
+.el-main{
+  background-color: #ecf0f1;
 }
 </style>
