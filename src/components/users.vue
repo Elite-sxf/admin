@@ -8,9 +8,9 @@
     <hr />
     <br />
     <el-input placeholder="请输入内容" v-model="query" class="input-with-select search">
-      <el-button slot="append" icon="el-icon-search"></el-button>
+      <el-button slot="append" icon="el-icon-search" @click="searchUser"></el-button>
     </el-input>
-    <el-button class="btn" plain type="success" @click="searchUser">搜索</el-button>
+    <el-button class="btn" plain type="success" @click="dialogVisible = true">添加用户</el-button>
     <template>
       <el-table :data="list" stripe style="width: 100%">
         <el-table-column prop="username" label="姓名" width="180"></el-table-column>
@@ -20,7 +20,7 @@
           <template v-slot:default="obj">
             <!-- {{obj.row}} -->
             <el-switch
-              @change="changeState(obj.row.id,obj.mg_state)"
+              @change="changeState(obj.row.id,obj.row.mg_state)"
               v-model="obj.row.mg_state"
               active-color="#13ce66"
               inactive-color="#ff4949"
@@ -29,7 +29,7 @@
         </el-table-column>
         <el-table-column label="操作">
           <template v-slot:default="obj">
-            <el-button plain size="small" type="primary" icon="el-icon-edit"></el-button>
+            <el-button plain size="small" type="primary" icon="el-icon-edit" @click="showEdit(obj.row)"></el-button>
             <el-button
               plain
               size="small"
@@ -53,6 +53,45 @@
       @size-change="sizeChange"
       @current-change="currentChange"
     ></el-pagination>
+  <!-- 添加 -->
+    <el-dialog title="添加用户" :visible.sync="dialogVisible" width="30%" @close="clear">
+      <el-form ref="form" :model="form" :rules="rules" label-width="80px">
+        <el-form-item label="用户名" prop="username">
+          <el-input placeholder="请输入用户名" v-model="form.username"></el-input>
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+          <el-input placeholder="请输入密码" v-model="form.password"></el-input>
+        </el-form-item>
+        <el-form-item label="邮箱" prop="email">
+          <el-input placeholder="请输入邮箱" v-model="form.email"></el-input>
+        </el-form-item>
+        <el-form-item label="手机" prop="mobile">
+          <el-input placeholder="请输入手机" v-model="form.mobile"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="dialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="addUser">确 定</el-button>
+      </span>
+    </el-dialog>
+    <!-- 修改信息 -->
+    <el-dialog title="添加用户" :visible.sync="editVisible" width="30%">
+      <el-form ref="editform" :model="editform" :rules="editrules" label-width="80px">
+        <el-form-item label="用户名">
+          <el-tag type="info">{{ editform.username }}</el-tag>
+        </el-form-item>
+        <el-form-item label="邮箱" prop="email">
+          <el-input v-model="editform.email"></el-input>
+        </el-form-item>
+        <el-form-item label="电话" prop="mobile">
+          <el-input v-model="editform.mobile"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="editVisible = false">取 消</el-button>
+        <el-button type="primary" @click="edit(editform.id)">确 定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -67,7 +106,37 @@ export default {
       pagenum: 1,
       pagesize: 3,
       list: [],
-      total: 0
+      total: 0,
+      dialogVisible: false,
+      editVisible: false,
+      form: {
+        username: '',
+        password: '',
+        email: '',
+        mobile: ''
+      },
+      rules: {
+        username: [
+          { required: true, message: '请输入3-7个字', trigger: ['change', 'blur'] },
+          { min: 3, max: 7, message: '请输入3-7个字', trigger: ['change', 'blur'] }
+        ],
+        password: [
+          { required: true, message: '请输入4-12个字', trigger: ['change', 'blur'] },
+          { min: 4, max: 12, message: '请输入4-12个字', trigger: ['change', 'blur'] }
+        ],
+        email: { type: 'email', message: '请输入正确的邮箱', trigger: ['change', 'blur'] },
+        mobile: { pattern: /^1[2-9]\d{9}$/, message: '请输入正确的邮箱', trigger: ['change', 'blur'] }
+      },
+      editform: {
+        id: '',
+        username: '',
+        email: '',
+        mobile: ''
+      },
+      editrules: {
+        email: { type: 'email', message: '请输入正确的邮箱', trigger: ['change', 'blur'] },
+        mobile: { pattern: /^1[2-9]\d{9}$/, message: '请输入正确的邮箱', trigger: ['change', 'blur'] }
+      }
     }
   },
   methods: {
@@ -79,11 +148,11 @@ export default {
           pagesize: this.pagesize
         }
       })
-      console.log(data, meta)
+      // console.log(data, meta)
       if (meta.status === 200) {
         // console.log(data)
-        this.total = data.total
         this.list = data.users
+        this.total = data.total
       } else {
         this.$message.error(meta.msg)
       }
@@ -108,7 +177,7 @@ export default {
 
     async changeState (id, type) {
       const { meta } = await this.$axios.put(`users/${id}/state/${type}`)
-      // console.log(res)
+      console.log(meta)
 
       if (meta.status === 200) {
         this.$message({ message: meta.msg, type: 'success' })
@@ -135,6 +204,51 @@ export default {
           this.render()
         } else {
           this.$message(meta.msg)
+        }
+      } catch (e) {
+        console.log(e)
+      }
+    },
+
+    async addUser () {
+      try {
+        await this.$refs.form.validate()
+        const { meta } = await this.$axios.post('users', this.form)
+        // console.log(res)
+        if (meta.status === 201) {
+          this.$message.success(meta.msg)
+          this.dialogVisible = false
+          this.render()
+        } else {
+          this.$message.error(meta.msg)
+        }
+      } catch (e) {
+        console.log(e)
+      }
+    },
+    // 清空表单
+    clear () {
+      this.$refs.form.resetFields()
+    },
+
+    showEdit (row) {
+      this.editVisible = true
+      this.editform.username = row.username
+      this.editform.id = row.id
+      this.editform.email = row.email
+      this.editform.mobile = row.mobile
+    },
+    async edit (id) {
+      try {
+        await this.$refs.editform.validate()
+        const { email, mobile } = this.editform
+        const { meta } = await this.$axios.put(`users/${id}`, { email, mobile })
+        // console.log(res)
+        if (meta.status === 200) {
+          this.$message.success(meta.msg)
+          this.editVisible = false
+        } else {
+          this.$message.error(meta.msg)
         }
       } catch (e) {
         console.log(e)
