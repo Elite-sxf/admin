@@ -35,6 +35,11 @@ axios.interceptors.request.use(function (config) {
 axios.interceptors.response.use(function (response) {
   // 对响应数据做点什么
   response = response.data
+  if (response.meta.status === 401) {
+    response.meta.msg = '登陆已过期'
+    localStorage.removeItem('token')
+    router.push('/login')
+  }
   return response
 }, function (error) {
   // 对响应错误做点什么
